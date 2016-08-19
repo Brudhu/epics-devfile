@@ -13,7 +13,9 @@ LIBRARY_IOC += devfile
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 # install devgpio.dbd into <top>/dbd
-DBD += devgpio.dbd
+DBD += devfile.dbd
+
+devfile_SYS_LIBS += prussdrv
 
 # specify all source files to be compiled and added to the library
 devfile_SRCS += devGpioSo.c devGpio.cpp devGpioManager.cpp GpioConst.cpp GpioIntHandler.cpp

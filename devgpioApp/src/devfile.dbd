@@ -1,0 +1,2 @@
+device(stringout,INST_IO,devGpioStringout,"devfile")
+registrar( "devFileConstRegister" )

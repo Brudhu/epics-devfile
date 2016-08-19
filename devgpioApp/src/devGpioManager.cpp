@@ -36,6 +36,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <signal.h>
 #include <unistd.h>
 
 // EPICS includes
@@ -43,6 +48,8 @@
 // local includes
 #include "devGpioManager.h"
 #include "devGpioErrors.h"
+#include "./framework/prussdrv.h"
+#include "./framework/pruss_intc_mapping.h"
 
 //_____ D E F I N I T I O N S __________________________________________________
 
@@ -51,6 +58,11 @@
 //_____ L O C A L S ____________________________________________________________
 static const char ERR_BEGIN[] = "\033[31;1m";
 static const char ERR_END[] = "\033[0m\n";
+
+volatile uint32_t *ram0;
+volatile uint32_t *cmd;
+unsigned int ret;
+tpruss_intc_initdata pruss_intc_initdata = PRUSS_INTC_INITDATA;
 
 //_____ F U N C T I O N S ______________________________________________________
 
@@ -70,6 +82,22 @@ GpioManager::GpioManager() {
   _mStringToEdge.insert( std::make_pair( "rising",  RISING ) );
   _mStringToEdge.insert( std::make_pair( "falling", FALLING ) );
   _mStringToEdge.insert( std::make_pair( "both",    BOTH ) );
+
+	//PRU
+  prussdrv_init ();
+  ret = prussdrv_open(PRU_EVTOUT_0);
+  if (ret)
+  {
+      printf("prussdrv_open open failed\n");
+      //return (ret);
+  }
+	else
+	{
+      printf("prussdrv_open sucessfull\n");
+			prussdrv_pruintc_init(&pruss_intc_initdata);
+			prussdrv_map_prumem(PRUSS0_PRU1_DATARAM, (void**) &ram0);
+			cmd = ram0;
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -265,34 +293,18 @@ GpioManager::DIRECTION GpioManager::getDirection( epicsUInt32 gpio ) {
 //------------------------------------------------------------------------------
 void GpioManager::setValue( char val[40] ) {
 
-  // Leds are not exported
-  /*if( it == _mgpio.end() ){
-    std::stringstream errmsg;
-    errmsg << "GpioManager::setValue: Error: GPIO " << gpio << " not managed.";
-    throw GpioManagerError( errmsg.str() );
-  } else if ( !it->second.exported ) {
-    std::stringstream errmsg;
-    errmsg << "GpioManager::setValue: Error: GPIO " << gpio << " not exported.";
-    throw GpioManagerError( errmsg.str() );
-  }*/
-
-//  if( it->second.dir != OUTPUT ) {
-//    std::stringstream errmsg;
-//    errmsg << "GpioManager::setValue: Error: GPIO " << gpio << " is not configured as output.";
-//    throw GpioManagerError( errmsg.str() );
-//  }
-
   std::stringstream filename;
   filename << _gpiobase;
 
-  std::fstream valFs( filename.str().c_str(), std::fstream::out );
+  /*std::fstream valFs( filename.str().c_str(), std::fstream::out );
   if( !valFs.is_open() || !valFs.good() ) {
     std::stringstream errmsg;
     errmsg << ERR_BEGIN << "GpioManager::setValue: Could not open value file '"
            << filename.str() << "': " << strerror( errno ) << ERR_END;
     throw GpioManagerError( errmsg.str() );
-  }
+  }*/
 
+	/*
   valFs << val;
   valFs.flush();
   if( valFs.bad() ) {
@@ -302,6 +314,34 @@ void GpioManager::setValue( char val[40] ) {
     throw GpioManagerError( errmsg.str() );
   }
   valFs.close();
+	*/
+
+	// PRU
+
+	//prussdrv_map_prumem(PRUSS0_PRU1_DATARAM, (void**) &ram0);
+	//cmd = ram0;
+	cmd[1] = val[0] - '0';
+	cmd[2] = val[1] - '0';
+	cmd[3] = val[2] - '0';
+  //prussdrv_init ();
+  /* Open PRU Interrupt */
+  //ret = prussdrv_open(PRU_EVTOUT_0);
+  //if (ret)
+  //{
+  //    printf("prussdrv_open open failed\n");
+      //return (ret);
+  //}
+	//else
+	//{
+	//		prussdrv_pruintc_init(&pruss_intc_initdata);
+	//		prussdrv_map_prumem(PRUSS0_PRU1_DATARAM, (void**) &ram0);
+	//		cmd = ram0;
+
+			//printf("%c",val[1]);
+	//		cmd[1] = val[0] - '0';
+	//		cmd[2] = val[1] - '0';
+	//		cmd[3] = val[2] - '0';
+	//}
 }
 
 //------------------------------------------------------------------------------
